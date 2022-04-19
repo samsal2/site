@@ -1,14 +1,14 @@
 RMF = rm -f
 
 CFLAGS = -std=c89
-# CFLAGS += -Ofast
-CFLAGS += -O0
-CFLAGS += -g
-CFLAGS += -fstrict-aliasing
-CFLAGS += -fsanitize=address
-CFLAGS += -fsanitize=undefined
-CFLAGS += -fsanitize=bounds
-# CFLAGS += -flto
+CFLAGS += -Ofast
+# CFLAGS += -O0
+# CFLAGS += -g
+# CFLAGS += -fstrict-aliasing
+# CFLAGS += -fsanitize=address
+# CFLAGS += -fsanitize=undefined
+# CFLAGS += -fsanitize=bounds
+CFLAGS += -flto
 CFLAGS += -Wall
 CFLAGS += -Werror
 CFLAGS += -Wextra
@@ -18,12 +18,12 @@ CFLAGS += -Walloca
 CFLAGS += -Wstrict-prototypes
 CFLAGS += -pedantic
 CFLAGS += -pedantic-errors
-# CFLAGS += -DNDEBUG
+CFLAGS += -DNDEBUG
 
-# LDFLAGS +=-flto
-LDFLAGS +=-fsanitize=address
-LDFLAGS +=-fsanitize=undefined
-LDFLAGS +=-fsanitize=bounds
+LDFLAGS +=-flto
+# LDFLAGS +=-fsanitize=address
+# LDFLAGS +=-fsanitize=undefined
+# LDFLAGS +=-fsanitize=bounds
 
 SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)

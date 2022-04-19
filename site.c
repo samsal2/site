@@ -43,12 +43,11 @@ enum site_code {
   SITE_ERROR_SOCKET_LISTEN,
   SITE_ERROR_SOCKET_ACCEPT,
   SITE_ERROR_UNKNOWN,
-  SITE_RECEIVE_CONNECTION_CLOSE,
-  SITE_ERROR_RECEIVE_BAD_READ,
-  SITE_ERROR_RECEIVE_OVERFLOW,
-  SITE_ERROR_BAD_ENCODING,
-  SITE_ERROR_BAD_HEADER,
-  SITE_ERROR_CONTENT_OVERFLOW
+  SITE_REQUEST_CONNECTION_CLOSE,
+  SITE_ERROR_REQUEST_BAD_READ,
+  SITE_ERROR_REQUEST_OVERFLOW,
+  SITE_ERROR_REPLY_BAD_ENCODING,
+  SITE_ERROR_REPLY_CONTENT_OVERFLOW
 };
 
 enum site_http_code {
@@ -92,7 +91,7 @@ enum site_code site_reply_init(struct site_reply_desc const *desc,
                     desc->content_size, desc->body);
 
   if (SITE_MAX_REPLY_SIZE < result) {
-    code = SITE_ERROR_CONTENT_OVERFLOW;
+    code = SITE_ERROR_REPLY_CONTENT_OVERFLOW;
     goto out;
   }
 
@@ -133,19 +132,19 @@ enum site_code site_request_receive(struct site_request *request, int client) {
     received = recv(client, &request->buffer[request->buffer_size], left, 0);
 
     if (0 == received) {
-      code = SITE_RECEIVE_CONNECTION_CLOSE;
+      code = SITE_REQUEST_CONNECTION_CLOSE;
       goto out;
     }
 
     if (-1 == received) {
-      code = SITE_ERROR_RECEIVE_BAD_READ;
+      code = SITE_ERROR_REQUEST_BAD_READ;
       goto out;
     }
 
     request->buffer_size += received;
 
     if (SITE_MAX_REQUEST_SIZE < request->buffer_size) {
-      code = SITE_ERROR_RECEIVE_OVERFLOW;
+      code = SITE_ERROR_REQUEST_OVERFLOW;
       goto out;
     }
 
@@ -198,11 +197,11 @@ enum site_code site_process_requests(int client) {
 
   code = site_request_receive(request, client);
 
-  if (SITE_RECEIVE_CONNECTION_CLOSE == code) {
+  if (SITE_REQUEST_CONNECTION_CLOSE == code) {
     goto out_free_request;
   }
 
-  if (SITE_ERROR_RECEIVE_BAD_READ == code) {
+  if (SITE_ERROR_REQUEST_BAD_READ == code) {
     struct site_reply_desc reply_desc;
 
     reply_desc.http_version = SITE_HTTP_VERSION;
@@ -216,7 +215,7 @@ enum site_code site_process_requests(int client) {
     goto out_reply_send;
   }
 
-  if (SITE_ERROR_RECEIVE_OVERFLOW == code) {
+  if (SITE_ERROR_REQUEST_OVERFLOW == code) {
     struct site_reply_desc reply_desc;
 
     reply_desc.http_version = SITE_HTTP_VERSION;
@@ -324,14 +323,12 @@ enum site_code site_server_run(struct site_server *server) {
       goto out;
     }
 
-    process = fork();
-
-    if (0 > process) {
-      close(client);
-    } else if (0 == process) {
+    if (0 == (process = fork())) {
       site_process_requests(client);
       close(client);
       exit(EXIT_SUCCESS);
+    } else if (0 > process) {
+      close(client);
     } else {
       ++server->current_fork_count;
       printf("current_fork_count: %i\n", server->current_fork_count);
@@ -359,7 +356,10 @@ int main(void) {
   if (SITE_SUCCESS != (code = site_server_init(&server)))
     goto out;
 
-  site_server_run(&server);
+  if (SITE_SUCCESS != (code = site_server_run(&server)))
+    goto out_server_deinit;
+
+out_server_deinit:
   site_server_deinit(&server);
 
 out:
