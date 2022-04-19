@@ -1,0 +1,35 @@
+# LSP
+.cache
+
+# vscode
+.vscode
+
+# personal scripts
+format.sh
+
+# ctags
+tags
+
+# c
+*.o
+*.d
+*.a
+*.out
+*.u32
+
+# clangd
+compile_commands.json
+
+# macos
+.DS_Store
+*.dSYM
+
+# build
+build/
+
+# python
+env/
+
+# js
+package_json/
+
