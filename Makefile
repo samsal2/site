@@ -4,8 +4,6 @@ CFLAGS = -std=c89
 # CFLAGS += -Ofast
 CFLAGS += -O0
 CFLAGS += -g
-CFLAGS += -Ilibraries/glfw/macos/include
-CFLAGS += -I$(VULKAN_SDK)/include
 CFLAGS += -fstrict-aliasing
 CFLAGS += -fsanitize=address
 CFLAGS += -fsanitize=undefined
