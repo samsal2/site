@@ -13,19 +13,7 @@ struct site_post {
   char const *content;
 };
 
-/* clang-format off */
-static struct site_post const posts[] = {
-  {
-    "text/html",
-    "<ol>"
-    "<li><a href='1'>David Bowie</a></li>"
-    "<li><a href='2'>Ozzy Osbourne</a></li>"
-    "<li><a href='3'>Jimmy Hendrix</a></li>" /* <<--- HERE*/
-    "<li><a href='4'>Andrei`</a></li>" /* <<--- HERE*/
-    "</ol>"
-  }
-};
-/* clang-format on */
+#include "posts.inl"
 
 #define SITE_HTTP_VERSION "1.1"
 #define SITE_DEFAULT_BACKLOG 1000
@@ -48,6 +36,20 @@ enum site_code {
   SITE_ERROR_REQUEST_OVERFLOW,
   SITE_ERROR_REPLY_BAD_ENCODING,
   SITE_ERROR_REPLY_CONTENT_OVERFLOW
+};
+
+static char const *site_code_messages[] = {
+  "\033[34m[LOG]\033[0m: success", /**/
+  "\033[31m[ERROR]\033[0m: failure to create a socket", /**/
+  "\033[31m[ERROR]\033[0m: failure to bind the server socket", /**/
+  "\033[31m[ERROR]\033[0m: failure to listen the server socket", /**/
+  "\033[31m[ERROR]\033[0m: failure to accept the server socket", /**/
+  "\033[31m[ERROR]\033[0m: unknown failure", /**/
+  "\033[34m[LOG]\033[0m: requested to close the connection", /**/
+  "\033[31m[ERROR]\033[0m: couldn't red the request", /**/
+  "\033[31m[ERROR]\033[0m: request overflowed", /**/
+  "\033[31m[ERROR]\033[0m: couldn't encode the reply", /**/
+  "\033[31m[ERROR]\033[0m: reply overflowed" /**/
 };
 
 enum site_http_code {
@@ -81,8 +83,8 @@ struct site_request {
 #define SITE_REPLY_FORMAT                                                      \
   "HTTP/%s %d \nContent-Type: %s\nContent-Length: %i\n\n%s\n"
 
-enum site_code site_reply_init(struct site_reply_desc const *desc,
-                               struct site_reply *reply) {
+static enum site_code site_reply_init(struct site_reply_desc const *desc,
+                                      struct site_reply *reply) {
   int result;
   enum site_code code = SITE_SUCCESS;
 
@@ -101,7 +103,8 @@ out:
   return code;
 }
 
-enum site_code site_reply_send(struct site_reply const *reply, int client) {
+static enum site_code site_reply_send(struct site_reply const *reply,
+                                      int client) {
   int sent;
   int left = reply->buffer_size;
   enum site_code code = SITE_SUCCESS;
@@ -121,7 +124,8 @@ out:
   return code;
 }
 
-enum site_code site_request_receive(struct site_request *request, int client) {
+static enum site_code site_request_receive(struct site_request *request,
+                                           int client) {
   int received = 0;
   int left = SITE_MAX_REQUEST_SIZE;
   enum site_code code = SITE_SUCCESS;
@@ -164,7 +168,7 @@ out:
   return code;
 }
 
-int site_request_is_get(struct site_request const *request) {
+static int site_request_is_get(struct site_request const *request) {
   return 0 == strncmp(request->buffer, "GET /", 4);
 }
 
@@ -180,7 +184,7 @@ struct site_server {
   int current_fork_count;
 };
 
-enum site_code site_process_requests(int client) {
+static enum site_code site_process_requests(int client) {
   struct site_reply *reply;
   struct site_request *request;
   enum site_code code = SITE_SUCCESS;
@@ -269,7 +273,7 @@ out:
   return code;
 }
 
-enum site_code site_server_init(struct site_server *server) {
+static enum site_code site_server_init(struct site_server *server) {
   enum site_code code = SITE_SUCCESS;
 
   server->current_fork_count = 0;
@@ -285,7 +289,7 @@ out:
   return code;
 }
 
-enum site_code site_server_run(struct site_server *server) {
+static enum site_code site_server_run(struct site_server *server) {
   int client;
   int sa_in_addr_len;
   struct sockaddr *sa;
@@ -324,7 +328,7 @@ enum site_code site_server_run(struct site_server *server) {
     }
 
     if (0 == (process = fork())) {
-      site_process_requests(client);
+      code = site_process_requests(client);
       close(client);
       exit(EXIT_SUCCESS);
     } else if (0 > process) {
@@ -347,7 +351,9 @@ out:
   return code;
 }
 
-void site_server_deinit(struct site_server *server) { close(server->socket); }
+static void site_server_deinit(struct site_server *server) {
+  close(server->socket);
+}
 
 int main(void) {
   struct site_server server;
@@ -356,8 +362,12 @@ int main(void) {
   if (SITE_SUCCESS != (code = site_server_init(&server)))
     goto out;
 
+  printf("\033[34m[LOG]\033[0m: Started server\n");
+
   if (SITE_SUCCESS != (code = site_server_run(&server)))
     goto out_server_deinit;
+
+  printf("%s\n", site_code_messages[code]);
 
 out_server_deinit:
   site_server_deinit(&server);

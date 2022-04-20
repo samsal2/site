@@ -1,5 +1,9 @@
 RMF = rm -f
 
+CC = clang
+
+XXD = xxd
+
 CFLAGS = -std=c89
 CFLAGS += -Ofast
 # CFLAGS += -O0
@@ -18,7 +22,7 @@ CFLAGS += -Walloca
 CFLAGS += -Wstrict-prototypes
 CFLAGS += -pedantic
 CFLAGS += -pedantic-errors
-CFLAGS += -DNDEBUG
+# CFLAGS += -DNDEBUG
 
 LDFLAGS +=-flto
 # LDFLAGS +=-fsanitize=address
@@ -29,6 +33,9 @@ SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
 DEPS = $(SRCS:.c=.d)
 
+HTMLS = $(wildcard *.html)
+HEXDMPS = $(HTMLS:.html=.inl)
+
 all: site
 
 .PHONY: site
@@ -37,12 +44,18 @@ all: site
 site: $(OBJS)
 	$(CC) $(LDFLAGS) -o site $^
 
+$(OBJS): $(HEXDMPS)
+
 %.o: %.c
 	$(CC) -MMD $(CFLAGS) -o $@ -c $<
+
+%.inl: %.html
+	$(XXD) -i $< > $@
 
 .PHONY: clean
 clean:
 	$(RMF) $(OBJS)
 	$(RMF) $(DEPS)
+	$(RMF) $(HEXDMPS)
 	$(RMF) site
 
