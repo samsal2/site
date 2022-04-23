@@ -1,53 +1,60 @@
 RMF = rm -f
-
-CC = clang
-
 XXD = xxd
 
-CFLAGS = -std=c89
-CFLAGS += -Ofast
-# CFLAGS += -O0
-# CFLAGS += -g
-# CFLAGS += -fstrict-aliasing
-# CFLAGS += -fsanitize=address
-# CFLAGS += -fsanitize=undefined
-# CFLAGS += -fsanitize=bounds
-CFLAGS += -flto
-CFLAGS += -Wall
-CFLAGS += -Werror
-CFLAGS += -Wextra
-CFLAGS += -Wshadow
-CFLAGS += -Wvla
-CFLAGS += -Walloca
-CFLAGS += -Wstrict-prototypes
-CFLAGS += -pedantic
-CFLAGS += -pedantic-errors
-# CFLAGS += -DNDEBUG
+SRCDIR  = site
+OUT = site.out
 
-LDFLAGS +=-flto
-# LDFLAGS +=-fsanitize=address
-# LDFLAGS +=-fsanitize=undefined
-# LDFLAGS +=-fsanitize=bounds
+INCS    = 
 
-SRCS = $(wildcard *.c)
-OBJS = $(SRCS:.c=.o)
+DEFS    = 
+
+CFLAGS  = -std=c90                       \
+          -O0                            \
+          -g                             \
+          -Wall                          \
+          -Wextra                        \
+          -Wshadow                       \
+          -Wvla                          \
+          -Walloca                       \
+          -pedantic                      \
+          -pedantic-errors               \
+          -fstrict-aliasing              \
+          -fsanitize=address             \
+          -fsanitize=undefined           \
+          -fsanitize=bounds              \
+          $(INCS)                        \
+          $(DEFS)
+
+LIBS    = 
+
+LDFLAGS = -fsanitize=address                    \
+          -fsanitize=undefined                  \
+          -fsanitize=bounds                     \
+          $(LIBS)
+
+SRCS = $(wildcard $(SRCDIR)/*.c)
+OBJS = $(SRCS:.c=.o) 
 DEPS = $(SRCS:.c=.d)
 
-HTMLS = $(wildcard *.html)
+HTMLS = $(wildcard $(SRCDIR)/*.html)
 HEXDMPS = $(HTMLS:.html=.inl)
 
-all: site
+all: $(OUT)
 
-.PHONY: site
+.PHONY: $(OUT)
 -include $(DEPS)
 
-site: $(OBJS)
-	$(CC) $(LDFLAGS) -o site $^
+$(OUT): $(OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@ 
 
 $(OBJS): $(HEXDMPS)
 
 %.o: %.c
 	$(CC) -MMD $(CFLAGS) -o $@ -c $<
+
+.PHONY: hexdumps
+
+hexdumps: $(HEXDMPS)
 
 %.inl: %.html
 	$(XXD) -i $< > $@
@@ -57,5 +64,5 @@ clean:
 	$(RMF) $(OBJS)
 	$(RMF) $(DEPS)
 	$(RMF) $(HEXDMPS)
-	$(RMF) site
+	$(RMF) $(OUT)
 
