@@ -1,3 +1,3 @@
 #!/bin/bash
 
-make && ./site
+make && ./site.out

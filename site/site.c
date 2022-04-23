@@ -8,9 +8,29 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+void *site_debug_malloc_(size_t s, char const *f, int l) {
+  void *p = malloc(s);
+  printf("\033[31m[MALLOC]\033[0m: f: %s l: %i s: %lu p: %p\n", f, l, s, p);
+  return p;
+}
+
+void site_debug_free_(void *p, char const *f, int l) {
+  printf("\033[31m[FREE]\033[0m: f: %s l: %i p: %p\n", f, l, p);
+  free(p);
+}
+
+#if defined(NDEBUG)
+#define SITE_MALLOC(s) malloc(s) 
+#define SITE_FREE(p) free(p)
+#else
+#define SITE_MALLOC(s) site_debug_malloc_(s, __FILE__, __LINE__) 
+#define SITE_FREE(p) site_debug_free_(p, __FILE__, __LINE__)
+#endif
+
 struct site_post {
+  int content_size; 
   char const *content_type;
-  char const *content;
+  char const *content; /* NOTE(samuel): not NULL terminated */
 };
 
 #include "posts.inl"
@@ -64,7 +84,7 @@ struct site_reply_desc {
   char const *http_version;
   enum site_http_code http_code;
   char const *content_type;
-  char const *body;
+  char const *content;
   int content_size;
 };
 
@@ -88,9 +108,10 @@ static enum site_code site_reply_init(struct site_reply_desc const *desc,
   int result;
   enum site_code code = SITE_SUCCESS;
 
+
   result = snprintf(reply->buffer, SITE_MAX_REPLY_SIZE, SITE_REPLY_FORMAT,
                     desc->http_version, desc->http_code, desc->content_type,
-                    desc->content_size, desc->body);
+                    desc->content_size, desc->content);
 
   if (SITE_MAX_REPLY_SIZE < result) {
     code = SITE_ERROR_REPLY_CONTENT_OVERFLOW;
@@ -189,12 +210,12 @@ static enum site_code site_process_requests(int client) {
   struct site_request *request;
   enum site_code code = SITE_SUCCESS;
 
-  if (!(reply = malloc(sizeof(*reply)))) {
+  if (!(reply = SITE_MALLOC(sizeof(*reply)))) {
     code = SITE_ERROR_UNKNOWN;
     goto out;
   }
 
-  if (!(request = malloc(sizeof(*request)))) {
+  if (!(request = SITE_MALLOC(sizeof(*request)))) {
     code = SITE_ERROR_UNKNOWN;
     goto out_free_reply;
   }
@@ -211,7 +232,7 @@ static enum site_code site_process_requests(int client) {
     reply_desc.http_version = SITE_HTTP_VERSION;
     reply_desc.http_code = SITE_HTTP_BAD_REQUEST;
     reply_desc.content_type = SITE_CONTENT_TYPE_TEXT_PLAIN;
-    reply_desc.body = SITE_HTTP_BAD_REQUEST_MESSAGE;
+    reply_desc.content = SITE_HTTP_BAD_REQUEST_MESSAGE;
     reply_desc.content_size = sizeof(SITE_HTTP_BAD_REQUEST_MESSAGE);
 
     code = site_reply_init(&reply_desc, reply);
@@ -225,7 +246,7 @@ static enum site_code site_process_requests(int client) {
     reply_desc.http_version = SITE_HTTP_VERSION;
     reply_desc.http_code = SITE_HTTP_BAD_REQUEST;
     reply_desc.content_type = SITE_CONTENT_TYPE_TEXT_PLAIN;
-    reply_desc.body = SITE_HTTP_BAD_REQUEST_MESSAGE;
+    reply_desc.content = SITE_HTTP_BAD_REQUEST_MESSAGE;
     reply_desc.content_size = sizeof(SITE_HTTP_BAD_REQUEST_MESSAGE);
 
     code = site_reply_init(&reply_desc, reply);
@@ -234,16 +255,34 @@ static enum site_code site_process_requests(int client) {
   }
 
   if (site_request_is_get(request)) {
+    char *content;
     struct site_reply_desc reply_desc;
     struct site_post const *post = &posts[0];
+
+    if (SITE_MAX_REPLY_SIZE < post->content_size + 1) {
+      code = SITE_ERROR_UNKNOWN;
+      goto out_free_request;
+    }
+
+    if (!(content = SITE_MALLOC((size_t)post->content_size + 1))) {
+      code = SITE_ERROR_UNKNOWN;
+      goto out_free_request;
+    }
+
+    /* add a null terminator to the content */
+    memcpy(content, post->content, post->content_size);
+    content[post->content_size] = '\0';
 
     reply_desc.http_version = SITE_HTTP_VERSION;
     reply_desc.http_code = SITE_HTTP_OK;
     reply_desc.content_type = post->content_type;
-    reply_desc.body = post->content;
-    reply_desc.content_size = strlen(post->content) + 1;
-
+    reply_desc.content = content;
+    reply_desc.content_size = post->content_size + 1;
+    
+    /* FIXME(samuel): should I null terminate this? */
     code = site_reply_init(&reply_desc, reply);
+
+    SITE_FREE(content);
 
     goto out_reply_send;
   } else {
@@ -252,7 +291,7 @@ static enum site_code site_process_requests(int client) {
     reply_desc.http_version = SITE_HTTP_VERSION;
     reply_desc.http_code = SITE_HTTP_NOT_FOUND;
     reply_desc.content_type = SITE_CONTENT_TYPE_TEXT_PLAIN;
-    reply_desc.body = SITE_HTTP_NOT_FOUND_MESSAGE;
+    reply_desc.content = SITE_HTTP_NOT_FOUND_MESSAGE;
     reply_desc.content_size = sizeof(SITE_HTTP_NOT_FOUND_MESSAGE);
 
     code = site_reply_init(&reply_desc, reply);
@@ -264,10 +303,10 @@ out_reply_send:
   code = site_reply_send(reply, client);
 
 out_free_request:
-  free(request);
+  SITE_FREE(request);
 
 out_free_reply:
-  free(reply);
+  SITE_FREE(reply);
 
 out:
   return code;
