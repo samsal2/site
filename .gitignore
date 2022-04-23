@@ -16,7 +16,6 @@ tags
 *.a
 *.out
 *.u32
-site
 
 # clangd
 compile_commands.json
