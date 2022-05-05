@@ -1,13 +1,12 @@
 .POSIX:
 
-WCFLAGS = -Wall -Wextra -Wshadow -pedantic -pedantic-errors -fstrict-aliasing \
-          -fsanitize=address -fsanitize=undefined -fsanitize=bounds 
+WFLAGS = -Wall -Wextra -Wshadow -pedantic -pedantic-errors
 
+FFLAGS = -fsanitize=address -fsanitize=undefined \
+         -fsanitize=bounds -fstrict-aliasing
 
-WLDFLAGS = -fsanitize=address -fsanitize=undefined -fsanitize=bounds
-
-SITECFLAGS = $(WCFLAGS) $(CFLAGS)
-SITELDFLAGS = $(WLDFLAGS0 $(LDFLAGS)
+SITECFLAGS = $(WFLAGS) $(FFLAGS) $(CFLAGS)
+SITELDFLAGS = $(FFLAGS) $(LDFLAGS)
 
 SRC = site.c
 OBJ = $(SRC:.c=.o) 
