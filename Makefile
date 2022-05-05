@@ -1,8 +1,4 @@
-RMF = rm -f
-XXD = xxd
-
-SRCDIR  = site
-OUT = site.out
+.POSIX:
 
 INCS    = 
 
@@ -32,37 +28,38 @@ LDFLAGS = -fsanitize=address                    \
           -fsanitize=bounds                     \
           $(LIBS)
 
-SRCS = $(wildcard $(SRCDIR)/*.c)
+SRCS = site.c
 OBJS = $(SRCS:.c=.o) 
 DEPS = $(SRCS:.c=.d)
 
-HTMLS = $(wildcard $(SRCDIR)/*.html)
+HTMLS = test.html
 HEXDMPS = $(HTMLS:.html=.inl)
 
-all: $(OUT)
+all: site
 
-.PHONY: $(OUT)
 -include $(DEPS)
 
-$(OUT): $(OBJS)
+.PHONY: site
+site: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@ 
 
 $(OBJS): $(HEXDMPS)
 
-%.o: %.c
+.SUFFIXES: .c .o
+.c.o:
 	$(CC) -MMD $(CFLAGS) -o $@ -c $<
 
 .PHONY: hexdumps
-
 hexdumps: $(HEXDMPS)
 
-%.inl: %.html
-	$(XXD) -i $< > $@
+.SUFFIXES: .html .inl
+.html.inl:
+	xxd -i $< > $@
 
 .PHONY: clean
 clean:
-	$(RMF) $(OBJS)
-	$(RMF) $(DEPS)
-	$(RMF) $(HEXDMPS)
-	$(RMF) $(OUT)
+	rm -f $(OBJS)
+	rm -f $(DEPS)
+	rm -f $(HEXDMPS)
+	rm -f site
 

@@ -167,6 +167,7 @@ static enum site_code site_request_receive(struct site_request *request,
     }
 
     request->buffer_size += received;
+    left -= received;
 
     if (SITE_MAX_REQUEST_SIZE < request->buffer_size) {
       code = SITE_ERROR_REQUEST_OVERFLOW;
@@ -401,7 +402,7 @@ int main(void) {
   if (SITE_SUCCESS != (code = site_server_init(&server)))
     goto out;
 
-  printf("\033[34m[LOG]\033[0m: Started server\n");
+  printf("%s\n", site_code_messages[code]);
 
   if (SITE_SUCCESS != (code = site_server_run(&server)))
     goto out_server_deinit;
