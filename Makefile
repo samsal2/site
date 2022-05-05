@@ -1,56 +1,36 @@
 .POSIX:
 
-INCS    = 
+WCFLAGS = -Wall -Wextra -Wshadow -pedantic -pedantic-errors -fstrict-aliasing \
+          -fsanitize=address -fsanitize=undefined -fsanitize=bounds 
 
-DEFS    = 
 
-CFLAGS  = -std=c90                       \
-          -O0                            \
-          -g                             \
-          -Wall                          \
-          -Wextra                        \
-          -Wshadow                       \
-          -Wvla                          \
-          -Walloca                       \
-          -pedantic                      \
-          -pedantic-errors               \
-          -fstrict-aliasing              \
-          -fsanitize=address             \
-          -fsanitize=undefined           \
-          -fsanitize=bounds              \
-          $(INCS)                        \
-          $(DEFS)
+WLDFLAGS = -fsanitize=address -fsanitize=undefined -fsanitize=bounds
 
-LIBS    = 
+SITECFLAGS = $(WCFLAGS) $(CFLAGS)
+SITELDFLAGS = $(WLDFLAGS0 $(LDFLAGS)
 
-LDFLAGS = -fsanitize=address                    \
-          -fsanitize=undefined                  \
-          -fsanitize=bounds                     \
-          $(LIBS)
+SRC = site.c
+OBJ = $(SRC:.c=.o) 
+DEP = $(SRC:.c=.d)
 
-SRCS = site.c
-OBJS = $(SRCS:.c=.o) 
-DEPS = $(SRCS:.c=.d)
-
-HTMLS = test.html
-HEXDMPS = $(HTMLS:.html=.inl)
+HTML = test.html
+HEXDMP = $(HTML:.html=.inl)
 
 all: site
 
--include $(DEPS)
-
 .PHONY: site
-site: $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@ 
+-include $(DEP)
+site: $(OBJ)
+	$(CC) $(SITECFLAGS) $(SITELDFLAGS) $^ -o $@ 
 
-$(OBJS): $(HEXDMPS)
+$(OBJ): $(HEXDMP)
 
 .SUFFIXES: .c .o
 .c.o:
-	$(CC) -MMD $(CFLAGS) -o $@ -c $<
+	$(CC) -MMD $(SITECFLAGS) -o $@ -c $<
 
 .PHONY: hexdumps
-hexdumps: $(HEXDMPS)
+hexdumps: $(HEXDMP)
 
 .SUFFIXES: .html .inl
 .html.inl:
@@ -58,8 +38,8 @@ hexdumps: $(HEXDMPS)
 
 .PHONY: clean
 clean:
-	rm -f $(OBJS)
-	rm -f $(DEPS)
-	rm -f $(HEXDMPS)
+	rm -f $(OBJ)
+	rm -f $(DEP)
+	rm -f $(HEXDMP)
 	rm -f site
 
