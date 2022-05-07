@@ -1,12 +1,11 @@
 .POSIX:
+.SUFFIXES:
 
-WFLAGS = -Wall -Wextra -Wshadow -pedantic -pedantic-errors
+WARNFLAGS = -Wall -Wextra -Wshadow -pedantic -pedantic-errors
+SANITIZEFLAGS = -fsanitize=address -fsanitize=undefined -fsanitize=bounds
 
-FFLAGS = -fsanitize=address -fsanitize=undefined \
-         -fsanitize=bounds -fstrict-aliasing
-
-SITECFLAGS = $(WFLAGS) $(FFLAGS) $(CFLAGS)
-SITELDFLAGS = $(FFLAGS) $(LDFLAGS)
+SITECFLAGS = $(WARNFLAGS) $(SANITIZEFLAGS) $(CFLAGS)
+SITELDFLAGS = $(SANITIZEFLAGS) $(LDFLAGS)
 
 SRC = site.c
 OBJ = $(SRC:.c=.o) 
