@@ -4,9 +4,10 @@
 WARNFLAGS = -Wall -Wextra -Wshadow -pedantic -pedantic-errors
 SANITIZEFLAGS = -fsanitize=address -fsanitize=undefined -fsanitize=bounds
 
-SITECFLAGS = $(WARNFLAGS) $(SANITIZEFLAGS) $(CFLAGS)
-SITELDFLAGS = $(SANITIZEFLAGS) $(LDFLAGS)
+PCFLAGS = $(WARNFLAGS) $(SANITIZEFLAGS) $(CFLAGS)
+PLDFLAGS = $(SANITIZEFLAGS) $(LDFLAGS)
 
+NAME = site
 SRC = site.c
 OBJ = $(SRC:.c=.o) 
 DEP = $(SRC:.c=.d)
@@ -14,18 +15,18 @@ DEP = $(SRC:.c=.d)
 HTML = test.html
 HEXDMP = $(HTML:.html=.inl)
 
-all: site
+all: $(NAME)
 
-.PHONY: site
+.PHONY: $(NAME)
 -include $(DEP)
 site: $(OBJ)
-	$(CC) $(SITECFLAGS) $(SITELDFLAGS) $^ -o $@ 
+	$(CC) $(PCFLAGS) $(PLDFLAGS) $^ -o $@ 
 
 $(OBJ): $(HEXDMP)
 
 .SUFFIXES: .c .o
 .c.o:
-	$(CC) -MMD $(SITECFLAGS) -o $@ -c $<
+	$(CC) -MMD $(PCFLAGS) -o $@ -c $<
 
 .PHONY: hexdumps
 hexdumps: $(HEXDMP)
@@ -39,5 +40,5 @@ clean:
 	rm -f $(OBJ)
 	rm -f $(DEP)
 	rm -f $(HEXDMP)
-	rm -f site
+	rm -f $(NAME)
 
